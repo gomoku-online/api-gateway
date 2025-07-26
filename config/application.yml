@@ -1,0 +1,23 @@
+server:
+  port: 3000
+  host: "0.0.0.0"
+
+logging:
+  level: "info,api_gateway=info,tower_http=info"
+
+gateway:
+  routes:
+    - id: "user_service_api"
+      uri: "${USER_SERVICE_URI}"
+      predicates:
+        - Path: "/api/users/**"
+
+    - id: "game_service_api"
+      uri: "${GAME_SERVICE_URI}"
+      predicates:
+        - Path: "/api/games/**"
+
+    - id: "websocket_service"
+      uri: "${WEBSOCKET_SERVICE_URI}"
+      predicates:
+        - Path: "/ws/**"

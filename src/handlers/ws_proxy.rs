@@ -28,8 +28,8 @@ static WS_HOP_BY_HOP_HEADERS: Lazy<HashSet<HeaderName>> = Lazy::new(|| {
         HeaderName::from_static("transfer-encoding"),
         UPGRADE,
     ]
-    .into_iter()
-    .collect()
+        .into_iter()
+        .collect()
 });
 
 pub async fn ws_proxy_handler(
@@ -41,7 +41,7 @@ pub async fn ws_proxy_handler(
     ws.on_upgrade(move |client_socket| async move {
         if let Err(error) = handle_websocket_proxy(client_socket, headers, backend_uri, tail).await
         {
-            error!("WebSocket proxy error: {:?}", error);
+            error!("웹소켓 프록시 오류: {:?}", error);
         }
     })
 }
@@ -54,10 +54,10 @@ async fn handle_websocket_proxy(
 ) -> Result<()> {
     let backend_socket =
         establish_backend_connection(&original_headers, &backend_uri, &tail).await?;
-    info!("WebSocket proxy connection established successfully");
+    info!("웹소켓 프록시 연결이 성공적으로 수립되었습니다");
 
     bridge_websocket_connections(client_socket, backend_socket).await;
-    debug!("WebSocket proxy connection terminated");
+    debug!("웹소켓 프록시 연결이 종료되었습니다");
 
     Ok(())
 }
@@ -72,12 +72,12 @@ async fn establish_backend_connection(
     let backend_request = build_backend_upgrade_request(original_headers, backend_uri, tail)?;
     let backend_url = backend_request.uri().to_string();
 
-    debug!("Connecting to backend WebSocket: {}", backend_url);
-    debug!("Backend headers: {:?}", backend_request.headers());
+    debug!("백엔드 웹소켓에 연결 중: {}", backend_url);
+    debug!("백엔드 헤더: {:?}", backend_request.headers());
 
     let (backend_socket, _response) = connect_async(backend_request)
         .await
-        .with_context(|| format!("Failed to connect to backend WebSocket: {}", backend_url))?;
+        .with_context(|| format!("백엔드 웹소켓에 연결하지 못했습니다: {}", backend_url))?;
 
     Ok(backend_socket)
 }
@@ -98,13 +98,13 @@ fn build_backend_upgrade_request(
             *req.headers_mut() = filtered_headers;
             req
         })
-        .context("Failed to build backend WebSocket upgrade request")
+        .context("백엔드 웹소켓 업그레이드 요청을 빌드하지 못했습니다")
 }
 
 fn construct_backend_websocket_url(backend_uri: &Uri, tail: &str) -> Result<String> {
     let authority = backend_uri
         .authority()
-        .context("Backend WebSocket URI must contain authority information")?;
+        .context("백엔드 웹소켓 URI는 authority 정보를 포함해야 합니다")?;
 
     let scheme = match backend_uri.scheme_str() {
         Some("https") => "wss",
@@ -144,9 +144,9 @@ fn create_websocket_headers(original_headers: &HeaderMap, backend_uri: &Uri) -> 
 
     let host = backend_uri
         .host()
-        .context("Backend WebSocket URI missing host")?;
+        .context("백엔드 웹소켓 URI에 호스트가 누락되었습니다")?;
     let host_value =
-        HeaderValue::from_str(host).context("Failed to create Host header for WebSocket")?;
+        HeaderValue::from_str(host).context("웹소켓의 Host 헤더를 생성하지 못했습니다")?;
     headers.insert(HOST, host_value);
 
     Ok(headers)
@@ -168,14 +168,14 @@ async fn bridge_websocket_connections(
                     if let Some(backend_msg) = convert_axum_to_tungstenite(client_msg) {
                         if backend_sender.send(backend_msg).await.is_err() {
                             debug!(
-                                "Backend connection closed, stopping client-to-backend forwarding"
+                                "백엔드 연결이 닫혔습니다. 클라이언트에서 백엔드로의 전달을 중지합니다"
                             );
                             break;
                         }
                     }
                 }
                 Err(error) => {
-                    debug!("Client connection error: {:?}", error);
+                    debug!("클라이언트 연결 오류: {:?}", error);
                     break;
                 }
             }
@@ -189,14 +189,14 @@ async fn bridge_websocket_connections(
                     if let Some(client_msg) = convert_tungstenite_to_axum(backend_msg) {
                         if client_sender.send(client_msg).await.is_err() {
                             debug!(
-                                "Client connection closed, stopping backend-to-client forwarding"
+                                "클라이언트 연결이 닫혔습니다. 백엔드에서 클라이언트로의 전달을 중지합니다"
                             );
                             break;
                         }
                     }
                 }
                 Err(error) => {
-                    debug!("Backend connection error: {:?}", error);
+                    debug!("백엔드 연결 오류: {:?}", error);
                     break;
                 }
             }
@@ -204,8 +204,8 @@ async fn bridge_websocket_connections(
     };
 
     tokio::select! {
-        _ = client_to_backend_task => debug!("Client-to-backend message forwarding completed"),
-        _ = backend_to_client_task => debug!("Backend-to-client message forwarding completed"),
+        _ = client_to_backend_task => debug!("클라이언트에서 백엔드로의 메시지 전달이 완료되었습니다"),
+        _ = backend_to_client_task => debug!("백엔드에서 클라이언트로의 메시지 전달이 완료되었습니다"),
     }
 }
 

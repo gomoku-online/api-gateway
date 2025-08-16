@@ -2,15 +2,15 @@ use anyhow::{Context, Result};
 use axum::{
     body::Body,
     extract::Request,
-    http::{HeaderMap, Method, Version, uri::Uri},
+    http::{uri::Uri, HeaderMap, Method, Version},
     response::Response,
 };
 use http::uri::PathAndQuery;
 use hyper::{
-    Response as HyperResponse,
     body::Incoming as HyperBody,
     client::conn::http1,
-    header::{CONNECTION, HOST, HeaderName, HeaderValue, UPGRADE},
+    header::{HeaderName, HeaderValue, CONNECTION, HOST, UPGRADE},
+    Response as HyperResponse,
 };
 use hyper_util::rt::TokioIo;
 use once_cell::sync::Lazy;
@@ -31,13 +31,11 @@ static HOP_BY_HOP_HEADERS: Lazy<HashSet<HeaderName>> = Lazy::new(|| {
         HeaderName::from_static("transfer-encoding"),
         UPGRADE,
     ]
-    .into_iter()
-    .collect()
+        .into_iter()
+        .collect()
 });
 
 pub async fn http_proxy_handler(backend_uri: Uri, tail: String, req: Request) -> Result<Response> {
-    debug!("Proxying request to backend: {}", backend_uri);
-
     let backend_request = build_backend_request(req, &backend_uri, &tail)?;
     let backend_response = send_request_to_backend(backend_request, &backend_uri).await?;
     let filtered_response = filter_response_headers(backend_response);
@@ -71,14 +69,14 @@ fn build_path_and_query(original_uri: &Uri, tail: &str) -> Result<PathAndQuery> 
     };
 
     PathAndQuery::from_str(&full_path)
-        .context("Failed to create PathAndQuery from constructed path")
+        .context("생성된 경로로부터 PathAndQuery를 만드는 데 실패했습니다")
 }
 
 fn extract_authority(backend_uri: &Uri) -> Result<hyper::http::uri::Authority> {
     backend_uri
         .authority()
         .cloned()
-        .context("Backend URI must contain authority (host:port) information")
+        .context("백엔드 URI는 반드시 authority (host:port) 정보를 포함해야 합니다")
 }
 
 fn filter_request_headers(
@@ -95,7 +93,7 @@ fn filter_request_headers(
     }
 
     let host_value =
-        HeaderValue::from_str(authority.as_str()).context("Failed to create Host header value")?;
+        HeaderValue::from_str(authority.as_str()).context("Host 헤더 값을 만드는 데 실패했습니다")?;
     filtered_headers.insert(HOST, host_value);
 
     Ok(filtered_headers)
@@ -129,23 +127,23 @@ async fn send_request_to_backend(
 
     tokio::spawn(async move {
         if let Err(err) = connection.await {
-            error!("Backend connection error: {:?}", err);
+            error!("백엔드 연결 오류: {:?}", err);
         }
     });
 
     sender
         .send_request(req)
         .await
-        .context("Failed to send request to backend")
+        .context("백엔드로 요청을 보내는 데 실패했습니다")
 }
 
 fn resolve_backend_address(backend_uri: &Uri) -> Result<SocketAddr> {
-    let host = backend_uri.host().context("Backend URI missing host")?;
+    let host = backend_uri.host().context("백엔드 URI에 호스트가 누락되었습니다")?;
 
     let port = backend_uri.port_u16().unwrap_or(80);
     let ip_addr: IpAddr = host
         .parse()
-        .with_context(|| format!("Invalid IP address in backend URI: {}", host))?;
+        .with_context(|| format!("백엔드 URI에 잘못된 IP 주소가 있습니다: {}", host))?;
 
     Ok(SocketAddr::new(ip_addr, port))
 }
@@ -153,7 +151,7 @@ fn resolve_backend_address(backend_uri: &Uri) -> Result<SocketAddr> {
 async fn establish_connection(addr: SocketAddr) -> Result<TcpStream> {
     TcpStream::connect(addr)
         .await
-        .with_context(|| format!("Failed to connect to backend at {}", addr))
+        .with_context(|| format!("{}의 백엔드에 연결하는 데 실패했습니다", addr))
 }
 
 async fn perform_http_handshake(
@@ -165,7 +163,7 @@ async fn perform_http_handshake(
     let io = TokioIo::new(stream);
     http1::handshake(io)
         .await
-        .context("HTTP/1.1 handshake with backend failed")
+        .context("백엔드와의 HTTP/1.1 핸드셰이크에 실패했습니다")
 }
 
 fn filter_response_headers(backend_response: HyperResponse<HyperBody>) -> Response {
@@ -184,5 +182,5 @@ fn filter_response_headers(backend_response: HyperResponse<HyperBody>) -> Respon
         .status(parts.status)
         .version(parts.version)
         .body(Body::new(body))
-        .expect("Failed to build response - this should never happen")
+        .expect("응답을 만드는 데 실패했습니다 - 이 문제는 발생해서는 안 됩니다")
 }

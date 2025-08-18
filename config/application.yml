@@ -7,15 +7,20 @@ logging:
 
 gateway:
   routes:
-    - id: "user_service_api"
+    - id: "user_service"
       uri: "${USER_SERVICE_URI}"
       predicates:
         - Path: "/api/users/**"
 
-    - id: "game_service_api"
+    - id: "game_service"
       uri: "${GAME_SERVICE_URI}"
       predicates:
         - Path: "/api/games/**"
+
+    - id: "auth_service"
+      uri: "${AUTH_SERVICE_URI}"
+      predicates:
+        - Path: "/api/auth/**"
 
     - id: "websocket_service"
       uri: "${WEBSOCKET_SERVICE_URI}"
